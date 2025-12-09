@@ -1,0 +1,53 @@
+{
+  "name": "Resume Email Orchestrator",
+  "nodes": [
+    {
+      "id": "1",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "position": [260, 300],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "resume-orchestrator",
+        "responseMode": "onReceived"
+      }
+    },
+    {
+      "id": "2",
+      "name": "Prepare Email Data",
+      "type": "n8n-nodes-base.function",
+      "position": [520, 300],
+      "parameters": {
+        "functionCode": "const data = items[0].json;\n\nreturn [{\n  json: {\n    to: data.email || \"test@example.com\",\n    subject: `Extracted Resume Data – ${data.filename}`,\n    message: data.extracted_text || \"No text extracted\",\n    analysis: data.analysis || \"No AI analysis provided\"\n  }\n}];"
+      }
+    },
+    {
+      "id": "3",
+      "name": "Send Email (Gmail)",
+      "type": "n8n-nodes-base.gmail",
+      "position": [800, 300],
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "fromEmail": "me",
+        "toList": "={{ $json.to }}",
+        "subject": "={{ $json.subject }}",
+        "text": "Extracted Text:\n\n{{ $json.message }}\n\n---\nAI Analysis:\n\n{{ $json.analysis }}"
+      },
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "__REPLACE_THIS__",
+          "name": "YOUR_GMAIL_CREDENTIAL"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{ "node": "Prepare Email Data" }]]
+    },
+    "Prepare Email Data": {
+      "main": [[{ "node": "Send Email (Gmail)" }]]
+    }
+  }
+}
